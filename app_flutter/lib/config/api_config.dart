@@ -12,7 +12,7 @@ import 'package:flutter/foundation.dart';
 class ApiConfig {
   /// true = datos de ejemplo, sin API (para revisar el diseño).
   /// false = conecta con triunfa-beca-api.
-  static const bool modoDemo = true;
+  static const bool modoDemo = false;
 
   static const String? ipManual = '127.0.0.1';
   static const int puerto = 3000;

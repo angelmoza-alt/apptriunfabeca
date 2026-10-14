@@ -51,19 +51,26 @@ class _RegistroScreenState extends State<RegistroScreen> {
       );
       usuarios.cargar();
       if (!mounted) return;
-      await showDialog<void>(
+      final accion = await showDialog<String>(
         context: context,
-        builder: (ctx) => AlertDialog(
-          icon: const Icon(Icons.check_circle, color: AppColors.verde, size: 48),
-          title: const Text('Usuario creado'),
-          content: Text(
-            '${nuevo.nombre} ya puede iniciar sesión en Gestión, Respuestas Rápidas y en la app con:\n\n'
-            'Correo: ${nuevo.correo}\nContraseña: la que acabas de asignar.',
-          ),
-          actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Entendido'))],
+        barrierDismissible: false,
+        builder: (_) => _DialogoUsuarioCreado(
+          nombre: nuevo.nombre,
+          correo: nuevo.correo,
+          rol: nuevo.rolTexto,
         ),
       );
-      if (mounted) Navigator.pop(context, true);
+      if (!mounted) return;
+      if (accion == 'otro') {
+        // Limpia el formulario para registrar a alguien más
+        _form.currentState!.reset();
+        for (final c in [_nombre, _correo, _password, _confirmar]) {
+          c.clear();
+        }
+        setState(() => _role = 'staff');
+      } else {
+        Navigator.pop(context, true);
+      }
     } catch (e) {
       if (mounted) mostrarMensaje(context, e.toString(), error: true);
     } finally {
@@ -166,6 +173,146 @@ class _RegistroScreenState extends State<RegistroScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                     : const Icon(Icons.person_add_alt_1),
                 label: const Text('Registrar usuario'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Mensaje de éxito al crear un usuario (con el estilo de la app)
+class _DialogoUsuarioCreado extends StatelessWidget {
+  final String nombre, correo, rol;
+  const _DialogoUsuarioCreado({required this.nombre, required this.correo, required this.rol});
+
+  @override
+  Widget build(BuildContext context) {
+    Widget fila(IconData icono, String etiqueta, String valor) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 5),
+          child: Row(children: [
+            Icon(icono, size: 18, color: AppColors.azul),
+            const SizedBox(width: 8),
+            SizedBox(width: 62, child: Text(etiqueta, style: const TextStyle(fontSize: 12.5, color: AppColors.gris))),
+            Expanded(
+              child: Text(valor,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
+            ),
+          ]),
+        );
+
+    Widget acceso(IconData icono, String texto) => Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(color: AppColors.rojoClaro, borderRadius: BorderRadius.circular(10)),
+            child: Column(children: [
+              Icon(icono, color: AppColors.rojo, size: 20),
+              const SizedBox(height: 2),
+              Text(texto,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: AppColors.rojo)),
+            ]),
+          ),
+        );
+
+    return Dialog(
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      surfaceTintColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+      clipBehavior: Clip.antiAlias,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Cabecera azul con el check
+              Container(
+                padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(colors: [AppColors.azulOscuro, AppColors.azul]),
+                ),
+                child: Column(children: [
+                  Container(
+                    width: 58,
+                    height: 58,
+                    decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                    child: const Icon(Icons.check_rounded, color: AppColors.verde, size: 38),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text('¡Usuario creado!',
+                      style: TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 2),
+                  const Text('La cuenta ya está activa',
+                      style: TextStyle(color: Colors.white70, fontSize: 12.5)),
+                ]),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.azulClaro.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(children: [
+                      fila(Icons.person_outline, 'Usuario', nombre),
+                      fila(Icons.email_outlined, 'Correo', correo),
+                      fila(Icons.verified_user_outlined, 'Rol', rol),
+                    ]),
+                  ),
+                  const SizedBox(height: 14),
+                  const Text('Puede iniciar sesión en:',
+                      style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    acceso(Icons.bolt, 'Respuestas\nRápidas'),
+                    const SizedBox(width: 8),
+                    acceso(Icons.dashboard, 'Gestión'),
+                    const SizedBox(width: 8),
+                    acceso(Icons.smartphone, 'App\nTriunfa Beca'),
+                  ]),
+                  const SizedBox(height: 10),
+                  const Row(children: [
+                    Icon(Icons.info_outline, size: 15, color: AppColors.gris),
+                    SizedBox(width: 6),
+                    Expanded(
+                      child: Text('Entrega al usuario su correo y la contraseña que asignaste.',
+                          style: TextStyle(fontSize: 11.5, color: AppColors.gris)),
+                    ),
+                  ]),
+                ]),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 18),
+                child: Row(children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context, 'otro'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(46),
+                        foregroundColor: AppColors.azul,
+                        side: const BorderSide(color: AppColors.azul),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                      ),
+                      child: const Text('Crear otro'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context, 'listo'),
+                      style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(46)),
+                      child: const Text('Listo'),
+                    ),
+                  ),
+                ]),
               ),
             ],
           ),
