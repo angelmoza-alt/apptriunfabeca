@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../main.dart';
 import '../providers/auth_provider.dart';
-import '../providers/config_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/comunes.dart';
 import 'main_shell.dart';
@@ -30,18 +29,22 @@ class MenuLateral extends StatelessWidget {
     Widget item(IconData icono, String texto, VoidCallback onTap, {bool activo = false}) {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-        child: ListTile(
-          leading: Icon(icono, color: activo ? Colors.white : AppColors.azul),
-          title: Text(texto,
-              style: TextStyle(fontWeight: FontWeight.w600, color: activo ? Colors.white : null)),
-          tileColor: activo ? AppColors.azul : null,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-          onTap: onTap,
+        child: Material(
+          color: activo ? AppColors.azul : Colors.transparent,
+          borderRadius: BorderRadius.circular(30),
+          clipBehavior: Clip.antiAlias,
+          child: ListTile(
+            leading: Icon(icono, color: activo ? Colors.white : AppColors.azul),
+            title: Text(texto,
+                style: TextStyle(fontWeight: FontWeight.w600, color: activo ? Colors.white : null)),
+            onTap: onTap,
+          ),
         ),
       );
     }
 
     return Drawer(
+      backgroundColor: Theme.of(context).colorScheme.surface,
       child: Stack(
         children: [
           const Positioned(bottom: 0, left: 0, right: 0, child: Ondas(alto: 110)),
@@ -56,7 +59,7 @@ class MenuLateral extends StatelessWidget {
                 const Center(child: Logo(ancho: 170)),
                 if (auth.usuario != null) ...[
                   const SizedBox(height: 8),
-                  Text(auth.usuario!.nombreCorto,
+                  Text(auth.usuario!.nombre,
                       textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold)),
                   Text(auth.esAdmin ? 'Administrador' : 'Estudiante',
                       textAlign: TextAlign.center, style: const TextStyle(color: AppColors.gris, fontSize: 12)),
@@ -104,7 +107,6 @@ Future<void> confirmarCerrarSesion(BuildContext context) async {
     ),
   );
   if (ok == true && context.mounted) {
-    context.read<ConfigProvider>().reiniciar();
     await context.read<AuthProvider>().cerrarSesion();
     if (context.mounted) {
       Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(Rutas.login, (_) => false);

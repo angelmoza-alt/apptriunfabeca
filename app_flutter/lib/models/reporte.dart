@@ -10,27 +10,28 @@ class RegistroMes {
   }
 }
 
+/// Resumen de GET /api/v1/admin/usuarios/resumen
 class Reporte {
-  final int total, activos, enProceso, inactivos, rechazados;
+  final int total, activos, inactivos, admins, staff;
   final List<RegistroMes> porMes;
 
   Reporte({
     required this.total,
     required this.activos,
-    required this.enProceso,
     required this.inactivos,
-    required this.rechazados,
+    required this.admins,
+    required this.staff,
     required this.porMes,
   });
 
   factory Reporte.fromJson(Map<String, dynamic> j) => Reporte(
         total: j['total'] ?? 0,
         activos: j['activos'] ?? 0,
-        enProceso: j['enProceso'] ?? 0,
         inactivos: j['inactivos'] ?? 0,
-        rechazados: j['rechazados'] ?? 0,
+        admins: j['admins'] ?? 0,
+        staff: j['staff'] ?? 0,
         porMes: ((j['porMes'] ?? []) as List)
-            .map((e) => RegistroMes(e['mes'] as String, e['total'] as int))
+            .map((e) => RegistroMes(e['mes'] as String, (e['total'] as num).toInt()))
             .toList(),
       );
 }

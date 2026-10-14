@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../main.dart';
 import '../providers/auth_provider.dart';
-import '../providers/config_provider.dart';
 import '../theme/app_theme.dart';
 import '../utils/validadores.dart';
 import '../widgets/comunes.dart';
@@ -33,10 +32,8 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _entrar() async {
     if (!_form.currentState!.validate()) return;
     final auth = context.read<AuthProvider>();
-    final config = context.read<ConfigProvider>();
     try {
       await auth.login(_correo.text.trim(), _password.text);
-      await config.cargarDelServidor();
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, Rutas.inicio, (_) => false);
     } catch (e) {
@@ -48,6 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final cargando = context.watch<AuthProvider>().cargando;
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: Stack(
         children: [
           const Positioned(bottom: 0, left: 0, right: 0, child: Ondas(alto: 110)),
@@ -100,15 +98,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         label: const Text('Ingresar'),
                       ),
                       const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text('¿No tienes cuenta?'),
-                          TextButton(
-                            onPressed: () => Navigator.pushNamed(context, Rutas.registro),
-                            child: const Text('Regístrate', style: TextStyle(fontWeight: FontWeight.bold)),
-                          ),
-                        ],
+                      const Text(
+                        'Usa la misma cuenta de Gestión y Respuestas Rápidas.\n'
+                        '¿No tienes cuenta? Pídela al administrador.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: AppColors.gris, fontSize: 13),
                       ),
                     ],
                   ),

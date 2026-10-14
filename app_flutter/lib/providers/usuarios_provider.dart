@@ -5,14 +5,17 @@ import 'package:flutter/foundation.dart';
 import '../models/usuario.dart';
 import '../services/api_service.dart';
 
-/// Lista de usuarios con búsqueda y filtro por estado (pantalla Usuarios).
+/// Filtros de la pantalla Usuarios
+enum FiltroUsuarios { todos, activos, inactivos, admins, staff }
+
+/// Lista de usuarios con búsqueda y filtros (pantalla Usuarios, solo admin).
 class UsuariosProvider extends ChangeNotifier {
   final ApiService api;
   UsuariosProvider(this.api);
 
   List<Usuario> usuarios = [];
   String busqueda = '';
-  String? filtroEstado; // null = Todos
+  FiltroUsuarios filtro = FiltroUsuarios.todos;
   bool cargando = false;
   String? error;
   Timer? _debounce;
@@ -22,7 +25,19 @@ class UsuariosProvider extends ChangeNotifier {
     error = null;
     notifyListeners();
     try {
-      usuarios = await api.usuarios(busqueda: busqueda, estado: filtroEstado);
+      usuarios = await api.usuarios(
+        busqueda: busqueda,
+        activo: switch (filtro) {
+          FiltroUsuarios.activos => true,
+          FiltroUsuarios.inactivos => false,
+          _ => null,
+        },
+        role: switch (filtro) {
+          FiltroUsuarios.admins => 'ADMIN',
+          FiltroUsuarios.staff => 'staff',
+          _ => null,
+        },
+      );
     } catch (e) {
       error = e.toString();
     } finally {
@@ -37,8 +52,8 @@ class UsuariosProvider extends ChangeNotifier {
     _debounce = Timer(const Duration(milliseconds: 350), cargar);
   }
 
-  void filtrar(String? estado) {
-    filtroEstado = estado;
+  void filtrar(FiltroUsuarios f) {
+    filtro = f;
     cargar();
   }
 

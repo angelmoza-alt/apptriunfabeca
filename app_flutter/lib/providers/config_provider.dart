@@ -1,15 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../services/api_service.dart';
-
-/// Preferencias del usuario: tema, notificaciones e idioma.
-/// Se guardan en el servidor (por usuario) y una copia local para que el
-/// tema se aplique al instante al abrir la app.
+/// Preferencias de la app (tema, notificaciones, idioma).
+/// Se guardan en el celular: la API de Triunfa Beca no maneja preferencias.
 class ConfigProvider extends ChangeNotifier {
-  final ApiService api;
-  ConfigProvider(this.api);
-
   bool notificaciones = true;
   String idioma = 'es';
   String tema = 'claro';
@@ -24,42 +18,14 @@ class ConfigProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> cargarDelServidor() async {
-    try {
-      _aplicar(await api.configuracion());
-    } catch (_) {
-      // Sin conexión: se mantiene lo local
-    }
-  }
-
   Future<void> cambiar({bool? notificaciones, String? idioma, String? tema}) async {
-    // Cambio optimista: se ve al instante y luego se guarda
-    _aplicar({
-      'notificaciones': notificaciones ?? this.notificaciones,
-      'idioma': idioma ?? this.idioma,
-      'tema': tema ?? this.tema,
-    });
-    final cambios = <String, dynamic>{
-      if (notificaciones != null) 'notificaciones': notificaciones,
-      if (idioma != null) 'idioma': idioma,
-      if (tema != null) 'tema': tema,
-    };
-    _aplicar(await api.guardarConfiguracion(cambios));
-  }
-
-  void _aplicar(Map<String, dynamic> c) {
-    notificaciones = c['notificaciones'] ?? notificaciones;
-    idioma = c['idioma'] ?? idioma;
-    tema = c['tema'] ?? tema;
-    SharedPreferences.getInstance().then((p) {
-      p.setString('tema', tema);
-      p.setBool('notificaciones', notificaciones);
-      p.setString('idioma', idioma);
-    });
+    if (notificaciones != null) this.notificaciones = notificaciones;
+    if (idioma != null) this.idioma = idioma;
+    if (tema != null) this.tema = tema;
     notifyListeners();
-  }
-
-  void reiniciar() {
-    _aplicar({'notificaciones': true, 'idioma': 'es', 'tema': 'claro'});
+    final p = await SharedPreferences.getInstance();
+    await p.setString('tema', this.tema);
+    await p.setBool('notificaciones', this.notificaciones);
+    await p.setString('idioma', this.idioma);
   }
 }

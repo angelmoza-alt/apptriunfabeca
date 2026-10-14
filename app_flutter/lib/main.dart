@@ -16,18 +16,21 @@ import 'screens/registro_screen.dart';
 import 'screens/reportes_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/usuarios_screen.dart';
+import 'config/api_config.dart';
+import 'services/api_demo.dart';
 import 'services/api_service.dart';
 import 'theme/app_theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  final api = ApiService(); // una sola instancia compartida (guarda el token)
+  // Una sola instancia compartida (guarda el token). En modo demo usa datos de ejemplo.
+  final ApiService api = ApiConfig.modoDemo ? ApiDemo() : ApiService();
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider(api)),
-        ChangeNotifierProvider(create: (_) => ConfigProvider(api)..cargarLocal()),
+        ChangeNotifierProvider(create: (_) => ConfigProvider()..cargarLocal()),
         ChangeNotifierProvider(create: (_) => UsuariosProvider(api)),
       ],
       child: const TriunfaBecaApp(),

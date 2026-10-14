@@ -94,7 +94,7 @@ class AvatarUsuario extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _colores[usuario.id % _colores.length];
+    final color = _colores[usuario.id.hashCode.abs() % _colores.length];
     return CircleAvatar(
       radius: radio,
       backgroundColor: color.withOpacity(0.15),
@@ -106,33 +106,43 @@ class AvatarUsuario extends StatelessWidget {
   }
 }
 
-/// Etiqueta de estado: Activo / En proceso / Inactivo / Rechazado
+/// Etiqueta de estado de la cuenta: Activo / Inactivo
 class EstadoBadge extends StatelessWidget {
-  final String estado;
-  const EstadoBadge(this.estado, {super.key});
+  final bool activo;
+  const EstadoBadge(this.activo, {super.key});
 
-  static String texto(String e) => const {
-        'activo': 'Activo',
-        'en_proceso': 'En proceso',
-        'inactivo': 'Inactivo',
-        'rechazado': 'Rechazado',
-      }[e] ??
-      e;
+  @override
+  Widget build(BuildContext context) => _Etiqueta(
+        texto: activo ? 'Activo' : 'Inactivo',
+        fg: activo ? AppColors.verde : AppColors.rojo,
+        bg: activo ? AppColors.verdeClaro : AppColors.rojoClaro,
+      );
+}
 
-  static (Color, Color) colores(String e) => switch (e) {
-        'activo' => (AppColors.verde, AppColors.verdeClaro),
-        'en_proceso' => (AppColors.naranja, AppColors.naranjaClaro),
-        'rechazado' => (AppColors.rojo, AppColors.rojoClaro),
-        _ => (AppColors.rojo, AppColors.rojoClaro),
-      };
+/// Etiqueta de rol: Admin / Staff
+class RolBadge extends StatelessWidget {
+  final bool admin;
+  const RolBadge(this.admin, {super.key});
+
+  @override
+  Widget build(BuildContext context) => _Etiqueta(
+        texto: admin ? 'Admin' : 'Staff',
+        fg: admin ? AppColors.azul : AppColors.morado,
+        bg: admin ? AppColors.azulClaro : AppColors.moradoClaro,
+      );
+}
+
+class _Etiqueta extends StatelessWidget {
+  final String texto;
+  final Color fg, bg;
+  const _Etiqueta({required this.texto, required this.fg, required this.bg});
 
   @override
   Widget build(BuildContext context) {
-    final (fg, bg) = colores(estado);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
-      child: Text(texto(estado), style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w600)),
+      child: Text(texto, style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w600)),
     );
   }
 }
@@ -178,8 +188,9 @@ class CampoTexto extends StatelessWidget {
             validator: validator,
             keyboardType: teclado,
             obscureText: oculto,
-            enabled: habilitado,
+            readOnly: !habilitado,
             maxLength: maxLength,
+            style: const TextStyle(fontSize: 15),
             decoration: InputDecoration(
               hintText: pista,
               counterText: '',
@@ -283,4 +294,44 @@ class FilaDato extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Caja azul clara con borde punteado (aviso del registro, como en el diseño)
+class CajaPunteada extends StatelessWidget {
+  final Widget child;
+  const CajaPunteada({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _BordePunteado(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(color: AppColors.azulClaro, borderRadius: BorderRadius.circular(12)),
+        child: child,
+      ),
+    );
+  }
+}
+
+class _BordePunteado extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final pincel = Paint()
+      ..color = AppColors.azul
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    final camino = Path()
+      ..addRRect(RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(12)));
+    for (final metrica in camino.computeMetrics()) {
+      double d = 0;
+      while (d < metrica.length) {
+        canvas.drawPath(metrica.extractPath(d, math.min(d + 5, metrica.length)), pincel);
+        d += 9;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

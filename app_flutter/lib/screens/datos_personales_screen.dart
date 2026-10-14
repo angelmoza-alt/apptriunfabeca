@@ -4,13 +4,13 @@ import 'package:provider/provider.dart';
 import '../models/usuario.dart';
 import '../providers/auth_provider.dart';
 import '../providers/usuarios_provider.dart';
+import '../utils/responsive.dart';
 import '../utils/validadores.dart';
 import '../widgets/comunes.dart';
-import '../utils/responsive.dart';
 
-/// 4. Datos personales: ver y editar.
+/// 4. Datos personales: ver y editar nombre y correo.
 /// Sin argumentos edita al usuario logueado; con un [Usuario] como argumento
-/// (desde Detalle de usuario) edita a ese usuario (solo admin).
+/// (desde Detalle de usuario) el administrador edita a ese usuario.
 class DatosPersonalesScreen extends StatefulWidget {
   const DatosPersonalesScreen({super.key});
 
@@ -20,12 +20,10 @@ class DatosPersonalesScreen extends StatefulWidget {
 
 class _DatosPersonalesScreenState extends State<DatosPersonalesScreen> {
   final _form = GlobalKey<FormState>();
-  final _nombres = TextEditingController();
-  final _apPaterno = TextEditingController();
-  final _apMaterno = TextEditingController();
-  final _dni = TextEditingController();
+  final _nombre = TextEditingController();
   final _correo = TextEditingController();
   late Usuario _usuario;
+  bool _deOtro = false;
   bool _iniciado = false;
   bool _editando = false;
   bool _guardando = false;
@@ -35,26 +33,23 @@ class _DatosPersonalesScreenState extends State<DatosPersonalesScreen> {
     super.didChangeDependencies();
     if (_iniciado) return;
     final arg = ModalRoute.of(context)?.settings.arguments;
-    _usuario = arg is Usuario ? arg : context.read<AuthProvider>().usuario!;
+    final yo = context.read<AuthProvider>().usuario!;
+    _usuario = arg is Usuario ? arg : yo;
+    _deOtro = arg is Usuario && arg.id != yo.id;
+    _editando = arg is Usuario; // desde "Editar perfil" abre directo en edición
     _llenar();
-    // Si viene desde "Editar perfil", abre directamente en modo edición
-    _editando = arg is Usuario;
     _iniciado = true;
   }
 
   void _llenar() {
-    _nombres.text = _usuario.nombres;
-    _apPaterno.text = _usuario.apellidoPaterno;
-    _apMaterno.text = _usuario.apellidoMaterno;
-    _dni.text = _usuario.dni;
+    _nombre.text = _usuario.nombre;
     _correo.text = _usuario.correo;
   }
 
   @override
   void dispose() {
-    for (final c in [_nombres, _apPaterno, _apMaterno, _dni, _correo]) {
-      c.dispose();
-    }
+    _nombre.dispose();
+    _correo.dispose();
     super.dispose();
   }
 
@@ -62,18 +57,14 @@ class _DatosPersonalesScreenState extends State<DatosPersonalesScreen> {
     if (!_form.currentState!.validate()) return;
     final auth = context.read<AuthProvider>();
     final usuarios = context.read<UsuariosProvider>();
-    final cambios = {
-      'nombres': _nombres.text.trim(),
-      'apellidoPaterno': _apPaterno.text.trim(),
-      'apellidoMaterno': _apMaterno.text.trim(),
-      'dni': _dni.text.trim(),
-      'correo': _correo.text.trim(),
-    };
+    final cambios = {'nombre': _nombre.text.trim(), 'correo': _correo.text.trim()};
     setState(() => _guardando = true);
     try {
-      final actualizado = await auth.api.actualizarUsuario(_usuario.id, cambios);
-      auth.reemplazarSiEsYo(actualizado); // actualiza saludo, menú, etc.
-      usuarios.actualizarEnLista(actualizado); // actualiza la lista de Usuarios
+      final actualizado = _deOtro
+          ? await auth.api.actualizarUsuario(_usuario.id, cambios)
+          : await auth.actualizarMisDatos(cambios);
+      auth.reemplazarSiEsYo(actualizado);
+      usuarios.actualizarEnLista(actualizado);
       _usuario = actualizado;
       if (!mounted) return;
       setState(() => _editando = false);
@@ -89,7 +80,7 @@ class _DatosPersonalesScreenState extends State<DatosPersonalesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Mis datos')),
+      appBar: AppBar(title: Text(_deOtro ? 'Editar usuario' : 'Mis datos')),
       body: SingleChildScrollView(
         padding: Responsive.padding(context, maxAncho: 560),
         child: Form(
@@ -104,20 +95,23 @@ class _DatosPersonalesScreenState extends State<DatosPersonalesScreen> {
               ]),
               const SizedBox(height: 16),
               CampoTexto(
-                  etiqueta: 'Nombres', icono: Icons.person_outline, controller: _nombres,
-                  habilitado: _editando, validator: (v) => Validadores.requerido(v, 'Nombres')),
-              CampoTexto(
-                  etiqueta: 'Apellido paterno', icono: Icons.person_outline, controller: _apPaterno,
-                  habilitado: _editando, validator: (v) => Validadores.requerido(v, 'Apellido paterno')),
-              CampoTexto(
-                  etiqueta: 'Apellido materno', icono: Icons.person_outline, controller: _apMaterno,
-                  habilitado: _editando, validator: (v) => Validadores.requerido(v, 'Apellido materno')),
-              CampoTexto(
-                  etiqueta: 'DNI', icono: Icons.badge_outlined, controller: _dni, maxLength: 8,
-                  teclado: TextInputType.number, habilitado: _editando, validator: Validadores.dni),
+                  etiqueta: 'Usuario', icono: Icons.person_outline, controller: _nombre,
+                  habilitado: _editando, validator: (v) => Validadores.requerido(v, 'Usuario')),
               CampoTexto(
                   etiqueta: 'Correo electrónico', icono: Icons.email_outlined, controller: _correo,
                   teclado: TextInputType.emailAddress, habilitado: _editando, validator: Validadores.correo),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(children: [
+                  const Text('Rol: ', style: TextStyle(fontWeight: FontWeight.w600)),
+                  RolBadge(_usuario.esAdmin),
+                ]),
+              ),
+              if (_editando && !_deOtro)
+                const Text(
+                  'Si cambias tu correo, úsalo también para entrar a Gestión y Respuestas Rápidas.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
               const SizedBox(height: 16),
               if (!_editando)
                 ElevatedButton.icon(

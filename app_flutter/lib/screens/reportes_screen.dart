@@ -72,9 +72,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
       ..writeln('')
       ..writeln('Total usuarios: ${r.total}')
       ..writeln('Activos: ${r.activos}')
-      ..writeln('En proceso: ${r.enProceso}')
       ..writeln('Inactivos: ${r.inactivos}')
-      ..writeln('Rechazados: ${r.rechazados}')
+      ..writeln('Administradores: ${r.admins}')
+      ..writeln('Staff: ${r.staff}')
       ..writeln('')
       ..writeln('Registros por mes:');
     for (final m in r.porMes) {
@@ -165,8 +165,8 @@ class _ReportesScreenState extends State<ReportesScreen> {
                 children: [
                   _Indicador('Total usuarios', r.total, Icons.people, AppColors.azul, AppColors.azulClaro),
                   _Indicador('Activos', r.activos, Icons.check_circle, AppColors.verde, AppColors.verdeClaro),
-                  _Indicador('En proceso', r.enProceso, Icons.schedule, AppColors.naranja, AppColors.naranjaClaro),
-                  _Indicador('Rechazados', r.rechazados, Icons.cancel, AppColors.rojo, AppColors.rojoClaro),
+                  _Indicador('Inactivos', r.inactivos, Icons.block, AppColors.rojo, AppColors.rojoClaro),
+                  _Indicador('Administradores', r.admins, Icons.admin_panel_settings, AppColors.morado, AppColors.moradoClaro),
                 ],
               ),
               const SizedBox(height: 24),

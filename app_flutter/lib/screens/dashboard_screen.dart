@@ -19,7 +19,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   bool? _enLinea;
-  int _enProceso = 0;
+  int _inactivos = 0;
 
   @override
   void initState() {
@@ -31,15 +31,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (_enLinea != null) setState(() => _enLinea = null);
     final auth = context.read<AuthProvider>();
     final ok = await auth.api.enLinea();
-    int enProceso = 0;
+    int inactivos = 0;
     if (ok && auth.esAdmin) {
       try {
-        enProceso = (await auth.api.usuarios(estado: 'en_proceso')).length;
+        inactivos = (await auth.api.usuarios(activo: false)).length;
       } on ApiException catch (_) {}
     }
     if (mounted) setState(() {
       _enLinea = ok;
-      _enProceso = enProceso;
+      _inactivos = inactivos;
     });
   }
 
@@ -48,9 +48,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final esAdmin = context.read<AuthProvider>().esAdmin;
     final avisos = <(IconData, String)>[
       if (!notifOn) (Icons.notifications_off, 'Tienes las notificaciones desactivadas en Configuración.'),
-      if (notifOn && esAdmin && _enProceso > 0)
-        (Icons.hourglass_top, 'Hay $_enProceso usuario(s) con solicitud en proceso.'),
-      if (notifOn) (Icons.school, 'Bienvenido a Triunfa Beca. Completa tus datos para postular.'),
+      if (notifOn && esAdmin && _inactivos > 0)
+        (Icons.person_off, 'Hay $_inactivos usuario(s) desactivados que no pueden iniciar sesión.'),
+      if (notifOn) (Icons.verified_user, 'Tu cuenta sirve para la app, Gestión y Respuestas Rápidas.'),
     ];
     showModalBottomSheet(
       context: context,
@@ -76,7 +76,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final auth = context.watch<AuthProvider>();
     final notifOn = context.watch<ConfigProvider>().notificaciones;
     final u = auth.usuario;
-    final hayAviso = notifOn && auth.esAdmin && _enProceso > 0;
+    final hayAviso = notifOn && auth.esAdmin && _inactivos > 0;
 
     final tarjetas = <_Accion>[
       if (auth.esAdmin)
@@ -89,7 +89,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _Accion(Icons.settings, 'Configuración', 'Ajusta tus preferencias',
           () => MainShell.irAPestana(context, 3)),
       if (auth.esAdmin)
-        _Accion(Icons.groups, 'Usuarios', 'Gestiona estudiantes',
+        _Accion(Icons.groups, 'Usuarios', 'Cuentas del equipo',
             () => Navigator.pushNamed(context, Rutas.usuarios)),
       if (auth.esAdmin)
         _Accion(Icons.bar_chart, 'Reportes', 'Resumen y estadísticas',
@@ -115,25 +115,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: ListView(
           padding: Responsive.padding(context, maxAncho: 900),
           children: [
-            Text('Hola, ${u?.nombreCorto ?? ''} 👋',
+            Text('Hola, ${u?.nombre ?? ''} 👋',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.azulOscuro)),
-            const Text('Bienvenida(o) a Triunfa Beca', style: TextStyle(color: AppColors.azul)),
-            const SizedBox(height: 20),
+            Text(auth.esAdmin ? 'Administrador · Triunfa Beca' : 'Staff · Triunfa Beca', style: const TextStyle(color: AppColors.azul)),
+            const SizedBox(height: 14),
             // 2 columnas en celular, 3-4 en tablet; altura fija para que nunca se corte el texto
             GridView(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                 maxCrossAxisExtent: 230,
-                mainAxisExtent: 185,
+                mainAxisExtent: 148,
                 mainAxisSpacing: 12,
                 crossAxisSpacing: 12,
               ),
               children: tarjetas.map((a) => _TarjetaAccion(a)).toList(),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             _EstadoSistema(enLinea: _enLinea, onReintentar: _verificar),
           ],
         ),
@@ -164,16 +164,16 @@ class _TarjetaAccion extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         onTap: a.onTap,
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CircleAvatar(
-                radius: 28,
+                radius: 22,
                 backgroundColor: AppColors.azul,
-                child: Icon(a.icono, color: Colors.white, size: 28),
+                child: Icon(a.icono, color: Colors.white, size: 22),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Text(a.titulo,
                   textAlign: TextAlign.center,
                   maxLines: 2,

@@ -15,8 +15,8 @@ class ApiException implements Exception {
   String toString() => mensaje;
 }
 
-/// Única clase que habla con el backend. Cuando conecten con la web,
-/// solo cambian aquí la URL o los endpoints; las pantallas no se tocan.
+/// Única clase que habla con la API de Triunfa Beca (triunfa-beca-api).
+/// Todas las respuestas vienen como { success, message, data }.
 class ApiService {
   String? token;
 
@@ -28,18 +28,33 @@ class ApiService {
   Uri _uri(String ruta, [Map<String, String>? params]) =>
       Uri.parse('${ApiConfig.baseUrl}$ruta').replace(queryParameters: params);
 
+  /// Envía la petición y devuelve el campo "data" (o lanza ApiException con "message")
   Future<dynamic> _enviar(Future<http.Response> Function() peticion) async {
     http.Response r;
     try {
       r = await peticion().timeout(const Duration(seconds: 10));
     } on TimeoutException {
-      throw ApiException('El servidor no responde. ¿Está corriendo Docker?');
+      throw ApiException('El servidor no responde. ¿Está corriendo la API de Triunfa Beca?');
     } catch (_) {
-      throw ApiException('No se pudo conectar con el servidor. ¿Está corriendo Docker?');
+      throw ApiException('No se pudo conectar con el servidor. ¿Está corriendo la API de Triunfa Beca?');
     }
-    final cuerpo = r.body.isNotEmpty ? jsonDecode(utf8.decode(r.bodyBytes)) : null;
-    if (r.statusCode >= 200 && r.statusCode < 300) return cuerpo;
-    final mensaje = (cuerpo is Map && cuerpo['mensaje'] != null) ? cuerpo['mensaje'] : 'Error ${r.statusCode}';
+    dynamic cuerpo;
+    try {
+      cuerpo = r.body.isNotEmpty ? jsonDecode(utf8.decode(r.bodyBytes)) : null;
+    } catch (_) {
+      cuerpo = null;
+    }
+    final ok = r.statusCode >= 200 && r.statusCode < 300 && (cuerpo is! Map || cuerpo['success'] != false);
+    if (ok) return cuerpo is Map ? cuerpo['data'] : cuerpo;
+
+    String mensaje = 'Error ${r.statusCode}';
+    if (cuerpo is Map) {
+      if (cuerpo['message'] != null) {
+        mensaje = cuerpo['message'].toString();
+      } else if (cuerpo['errors'] is List && (cuerpo['errors'] as List).isNotEmpty) {
+        mensaje = (cuerpo['errors'] as List).first['msg']?.toString() ?? mensaje;
+      }
+    }
     throw ApiException(mensaje, r.statusCode);
   }
 
@@ -49,58 +64,78 @@ class ApiService {
       _enviar(() => http.post(_uri(ruta), headers: _headers, body: jsonEncode(body)));
   Future<dynamic> _put(String ruta, Map<String, dynamic> body) =>
       _enviar(() => http.put(_uri(ruta), headers: _headers, body: jsonEncode(body)));
+  Future<dynamic> _patch(String ruta, Map<String, dynamic> body) =>
+      _enviar(() => http.patch(_uri(ruta), headers: _headers, body: jsonEncode(body)));
 
   // ---------- Sistema ----------
+  /// La API no tiene /health: usamos una ruta pública liviana para saber si responde.
   Future<bool> enLinea() async {
     try {
-      final r = await _get('/health');
-      return r['estado'] == 'en_linea';
+      final r = await http
+          .get(Uri.parse('${ApiConfig.host}/api/v1/public/navegacion'))
+          .timeout(const Duration(seconds: 5));
+      return r.statusCode < 500;
     } catch (_) {
       return false;
     }
   }
 
-  // ---------- Auth ----------
+  // ---------- Auth (mismo login que el panel admin) ----------
   Future<(Usuario, String)> login(String correo, String password) async {
-    final r = await _post('/auth/login', {'correo': correo, 'password': password});
-    return (Usuario.fromJson(r['usuario']), r['token'] as String);
+    final d = await _post('/auth/login', {'correo': correo, 'password': password});
+    return (Usuario.fromJson(Map<String, dynamic>.from(d['usuario'])), d['token'] as String);
   }
 
-  Future<(Usuario, String)> registrar(Map<String, dynamic> datos) async {
-    final r = await _post('/auth/registro', datos);
-    return (Usuario.fromJson(r['usuario']), r['token'] as String);
-  }
+  Future<Usuario> yo() async => Usuario.fromJson(Map<String, dynamic>.from(await _get('/auth/me')));
 
-  Future<Usuario> yo() async => Usuario.fromJson(await _get('/auth/yo'));
+  // ---------- Mi cuenta (cualquier usuario) ----------
+  Future<Usuario> actualizarMiPerfil(Map<String, dynamic> cambios) async =>
+      Usuario.fromJson(Map<String, dynamic>.from(await _put('/usuarios/me', cambios)));
 
   Future<void> cambiarPassword(String actual, String nueva) =>
-      _put('/auth/password', {'actual': actual, 'nueva': nueva});
+      _put('/usuarios/me/password', {'actual': actual, 'nueva': nueva});
 
-  // ---------- Usuarios ----------
-  Future<List<Usuario>> usuarios({String? busqueda, String? estado}) async {
+  // ---------- Usuarios (solo ADMIN) ----------
+  Future<List<Usuario>> usuarios({String? busqueda, String? role, bool? activo}) async {
     final p = <String, String>{
       if (busqueda != null && busqueda.isNotEmpty) 'q': busqueda,
-      if (estado != null) 'estado': estado,
+      if (role != null) 'role': role,
+      if (activo != null) 'activo': '$activo',
     };
-    final r = await _get('/usuarios', p.isEmpty ? null : p);
-    return (r as List).map((e) => Usuario.fromJson(e)).toList();
+    final d = await _get('/usuarios', p.isEmpty ? null : p);
+    return (d as List).map((e) => Usuario.fromJson(Map<String, dynamic>.from(e))).toList();
   }
 
-  Future<Usuario> usuario(int id) async => Usuario.fromJson(await _get('/usuarios/$id'));
+  Future<Usuario> usuario(String id) async =>
+      Usuario.fromJson(Map<String, dynamic>.from(await _get('/usuarios/$id')));
 
-  Future<Usuario> actualizarUsuario(int id, Map<String, dynamic> cambios) async =>
-      Usuario.fromJson(await _put('/usuarios/$id', cambios));
+  /// Crea el usuario en la tabla compartida: podrá entrar a Gestión y Respuestas Rápidas.
+  Future<Usuario> crearUsuario({
+    required String nombre,
+    required String correo,
+    required String password,
+    required String role,
+  }) async =>
+      Usuario.fromJson(Map<String, dynamic>.from(await _post('/usuarios', {
+        'nombre': nombre,
+        'correo': correo,
+        'password': password,
+        'role': role,
+      })));
 
-  // ---------- Reportes ----------
+  Future<Usuario> actualizarUsuario(String id, Map<String, dynamic> cambios) async =>
+      Usuario.fromJson(Map<String, dynamic>.from(await _put('/usuarios/$id', cambios)));
+
+  Future<Usuario> cambiarEstado(String id, bool activo) async =>
+      Usuario.fromJson(Map<String, dynamic>.from(await _patch('/usuarios/$id/estado', {'es_activo': activo})));
+
+  Future<void> restablecerPassword(String id, String nueva) => _put('/usuarios/$id/password', {'nueva': nueva});
+
+  // ---------- Reportes (solo ADMIN) ----------
   Future<Reporte> reporte(DateTime desde, DateTime hasta) async {
-    String f(DateTime d) => d.toIso8601String().substring(0, 10);
-    return Reporte.fromJson(await _get('/reportes', {'desde': f(desde), 'hasta': f(hasta)}));
+    String f(DateTime d) =>
+        '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+    final d = await _get('/usuarios/resumen', {'desde': f(desde), 'hasta': f(hasta)});
+    return Reporte.fromJson(Map<String, dynamic>.from(d));
   }
-
-  // ---------- Configuración ----------
-  Future<Map<String, dynamic>> configuracion() async =>
-      Map<String, dynamic>.from(await _get('/configuracion'));
-
-  Future<Map<String, dynamic>> guardarConfiguracion(Map<String, dynamic> cambios) async =>
-      Map<String, dynamic>.from(await _put('/configuracion', cambios));
 }

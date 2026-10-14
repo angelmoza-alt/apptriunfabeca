@@ -35,12 +35,12 @@ class _UsuariosScreenState extends State<UsuariosScreen> {
   @override
   Widget build(BuildContext context) {
     final p = context.watch<UsuariosProvider>();
-    const filtros = <(String?, String)>[
-      (null, 'Todos'),
-      ('activo', 'Activos'),
-      ('en_proceso', 'En proceso'),
-      ('inactivo', 'Inactivos'),
-      ('rechazado', 'Rechazados'),
+    const filtros = <(FiltroUsuarios, String)>[
+      (FiltroUsuarios.todos, 'Todos'),
+      (FiltroUsuarios.activos, 'Activos'),
+      (FiltroUsuarios.inactivos, 'Inactivos'),
+      (FiltroUsuarios.admins, 'Admin'),
+      (FiltroUsuarios.staff, 'Staff'),
     ];
 
     return Scaffold(
@@ -62,7 +62,7 @@ class _UsuariosScreenState extends State<UsuariosScreen> {
               controller: _buscador,
               onChanged: p.buscar,
               decoration: InputDecoration(
-                hintText: 'Buscar por nombre, correo o DNI...',
+                hintText: 'Buscar por nombre o correo...',
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _buscador.text.isEmpty
                     ? null
@@ -86,12 +86,16 @@ class _UsuariosScreenState extends State<UsuariosScreen> {
               children: [
                 for (final (valor, texto) in filtros)
                   Padding(
-                    padding: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.only(right: 5),
                     child: ChoiceChip(
-                      label: Text(texto),
-                      selected: p.filtroEstado == valor,
+                      label: Text(texto, style: const TextStyle(fontSize: 12.5)),
+                      visualDensity: VisualDensity.compact,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      labelPadding: const EdgeInsets.symmetric(horizontal: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      selected: p.filtro == valor,
                       selectedColor: AppColors.azul,
-                      labelStyle: TextStyle(color: p.filtroEstado == valor ? Colors.white : null),
+                      labelStyle: TextStyle(color: p.filtro == valor ? Colors.white : null),
                       showCheckmark: false,
                       onSelected: (_) => p.filtrar(valor),
                     ),
@@ -128,11 +132,19 @@ class _UsuariosScreenState extends State<UsuariosScreen> {
           return ListTile(
             contentPadding: const EdgeInsets.symmetric(vertical: 4),
             leading: AvatarUsuario(usuario: u),
-            title: Text(u.nombreCorto,
+            title: Text(u.nombre,
                 maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
             subtitle: Text(u.correo, maxLines: 1, overflow: TextOverflow.ellipsis),
             trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-              EstadoBadge(u.estado),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  EstadoBadge(u.esActivo),
+                  const SizedBox(height: 4),
+                  RolBadge(u.esAdmin),
+                ],
+              ),
               const Icon(Icons.chevron_right),
             ]),
             onTap: () async {

@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../main.dart';
 import '../providers/auth_provider.dart';
-import '../providers/config_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/comunes.dart';
 
@@ -25,7 +24,6 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _iniciar() async {
     final auth = context.read<AuthProvider>();
-    final config = context.read<ConfigProvider>();
     final results = await Future.wait([
       auth.restaurarSesion(),
       Future.delayed(const Duration(milliseconds: 2200)),
@@ -33,8 +31,6 @@ class _SplashScreenState extends State<SplashScreen> {
     final haySesion = results[0] as bool;
     if (!mounted) return;
     if (haySesion) {
-      await config.cargarDelServidor();
-      if (!mounted) return;
       Navigator.pushReplacementNamed(context, Rutas.inicio);
     } else {
       Navigator.pushReplacementNamed(context, Rutas.login);
@@ -47,7 +43,6 @@ class _SplashScreenState extends State<SplashScreen> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          const Positioned(top: 0, left: 0, right: 0, child: Ondas(alto: 110, arriba: true)),
           const Positioned(bottom: 0, left: 0, right: 0, child: Ondas(alto: 150)),
           Center(
             child: SingleChildScrollView(

@@ -1,54 +1,53 @@
+/// Usuario de la tabla "usuarios" de la API de Triunfa Beca.
+/// El mismo usuario inicia sesión en la app, en Gestión y en Respuestas Rápidas.
 class Usuario {
-  final int id;
-  final String nombres;
-  final String apellidoPaterno;
-  final String apellidoMaterno;
-  final String dni;
+  final String id; // UUID
+  final String nombre;
   final String correo;
-  final String estado; // activo | en_proceso | inactivo | rechazado
-  final String rol; // admin | estudiante
-  final DateTime? creadoEn;
+  final String role; // 'ADMIN' | 'staff'
+  final bool esActivo;
+  final DateTime? fechaCreacion;
 
   Usuario({
     required this.id,
-    required this.nombres,
-    required this.apellidoPaterno,
-    required this.apellidoMaterno,
-    required this.dni,
+    required this.nombre,
     required this.correo,
-    required this.estado,
-    required this.rol,
-    this.creadoEn,
+    required this.role,
+    this.esActivo = true,
+    this.fechaCreacion,
   });
 
   factory Usuario.fromJson(Map<String, dynamic> j) => Usuario(
-        id: j['id'] as int,
-        nombres: j['nombres'] ?? '',
-        apellidoPaterno: j['apellidoPaterno'] ?? '',
-        apellidoMaterno: j['apellidoMaterno'] ?? '',
-        dni: j['dni'] ?? '',
+        id: j['id'].toString(),
+        nombre: j['nombre'] ?? '',
         correo: j['correo'] ?? '',
-        estado: j['estado'] ?? 'activo',
-        rol: j['rol'] ?? 'estudiante',
-        creadoEn: j['creadoEn'] != null ? DateTime.tryParse(j['creadoEn']) : null,
+        role: j['role'] ?? 'staff',
+        esActivo: j['es_activo'] ?? true,
+        fechaCreacion: j['fecha_creacion'] != null ? DateTime.tryParse(j['fecha_creacion'].toString()) : null,
       );
 
   Map<String, dynamic> toJson() => {
         'id': id,
-        'nombres': nombres,
-        'apellidoPaterno': apellidoPaterno,
-        'apellidoMaterno': apellidoMaterno,
-        'dni': dni,
+        'nombre': nombre,
         'correo': correo,
-        'estado': estado,
-        'rol': rol,
-        'creadoEn': creadoEn?.toIso8601String(),
+        'role': role,
+        'es_activo': esActivo,
+        'fecha_creacion': fechaCreacion?.toIso8601String(),
       };
 
-  String get nombreCorto => '$nombres $apellidoPaterno';
-  String get nombreCompleto => '$nombres $apellidoPaterno $apellidoMaterno';
-  bool get esAdmin => rol == 'admin';
-  String get iniciales =>
-      '${nombres.isNotEmpty ? nombres[0] : ''}${apellidoPaterno.isNotEmpty ? apellidoPaterno[0] : ''}'
-          .toUpperCase();
+  bool get esAdmin => role.toUpperCase() == 'ADMIN';
+  String get rolTexto => esAdmin ? 'Administrador' : 'Staff';
+
+  String get iniciales {
+    final partes = nombre.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    if (partes.isEmpty) return '?';
+    if (partes.length == 1) return partes.first[0].toUpperCase();
+    return (partes[0][0] + partes[1][0]).toUpperCase();
+  }
+
+  String get fechaTexto {
+    final f = fechaCreacion?.toLocal();
+    if (f == null) return '-';
+    return '${f.day.toString().padLeft(2, '0')}/${f.month.toString().padLeft(2, '0')}/${f.year}';
+  }
 }

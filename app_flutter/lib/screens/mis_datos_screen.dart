@@ -44,10 +44,6 @@ class MisDatosScreen extends StatelessWidget {
                 color: AppColors.naranja,
                 fondo: AppColors.naranjaClaro,
                 onTap: () => context.read<ConfigProvider>().cambiar(notificaciones: !config.notificaciones),
-                trailing: Switch(
-                  value: config.notificaciones,
-                  onChanged: (v) => context.read<ConfigProvider>().cambiar(notificaciones: v),
-                ),
               ),
               OpcionMenu(
                 icono: Icons.help,

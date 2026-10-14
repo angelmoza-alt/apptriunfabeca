@@ -6,9 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/usuario.dart';
 import '../services/api_service.dart';
 
-/// Maneja la sesión: login, registro, cerrar sesión y el usuario actual.
-/// La sesión se guarda en el celular (SharedPreferences) para no pedir
-/// login cada vez que se abre la app.
+/// Maneja la sesión con el mismo login del panel admin de Triunfa Beca.
+/// La sesión se guarda en el celular para no pedir login cada vez.
 class AuthProvider extends ChangeNotifier {
   final ApiService api;
   AuthProvider(this.api);
@@ -30,10 +29,14 @@ class AuthProvider extends ChangeNotifier {
     if (token == null || guardado == null) return false;
 
     api.token = token;
-    usuario = Usuario.fromJson(jsonDecode(guardado));
     try {
-      // Refresca los datos desde el servidor (por si cambiaron)
-      usuario = await api.yo();
+      usuario = Usuario.fromJson(jsonDecode(guardado));
+    } catch (_) {
+      await cerrarSesion();
+      return false;
+    }
+    try {
+      usuario = await api.yo(); // refresca datos (y valida que el token siga vigente)
       await _guardar(token);
     } on ApiException catch (e) {
       if (e.codigo == 401 || e.codigo == 404) {
@@ -58,35 +61,22 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Registro público (pantalla "Crea tu cuenta"): deja la sesión iniciada.
-  Future<void> registrarYEntrar(Map<String, dynamic> datos) async {
-    _setCargando(true);
-    try {
-      final (u, token) = await api.registrar(datos);
-      usuario = u;
-      api.token = token;
-      await _guardar(token);
-    } finally {
-      _setCargando(false);
-    }
-  }
+  /// El administrador crea un usuario nuevo (no cambia la sesión actual).
+  Future<Usuario> crearUsuario({
+    required String nombre,
+    required String correo,
+    required String password,
+    required String role,
+  }) =>
+      api.crearUsuario(nombre: nombre, correo: correo, password: password, role: role);
 
-  /// Registro hecho por el administrador: crea al usuario pero NO cambia la sesión.
-  Future<Usuario> registrarOtro(Map<String, dynamic> datos) async {
-    final tokenActual = api.token;
-    try {
-      final (u, _) = await api.registrar(datos);
-      return u;
-    } finally {
-      api.token = tokenActual;
-    }
-  }
-
-  Future<void> actualizarMisDatos(Map<String, dynamic> cambios) async {
-    final u = await api.actualizarUsuario(usuario!.id, cambios);
+  /// Edita mis propios datos (nombre y correo)
+  Future<Usuario> actualizarMisDatos(Map<String, dynamic> cambios) async {
+    final u = await api.actualizarMiPerfil(cambios);
     usuario = u;
     await _guardar(api.token!);
     notifyListeners();
+    return u;
   }
 
   /// Si se editó al usuario logueado desde otra pantalla, refresca aquí.

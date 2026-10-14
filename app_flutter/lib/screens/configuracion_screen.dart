@@ -105,7 +105,7 @@ class ConfiguracionScreen extends StatelessWidget {
               const Divider(),
               fila(Icons.language, 'Idioma', 'Español (ES)', onTap: () => _elegirIdioma(context)),
               const Divider(),
-              fila(Icons.dark_mode, 'Tema', config.tema == 'oscuro' ? 'Oscuro' : 'Claro',
+              fila(Icons.dark_mode, 'Tema', 'Claro / Oscuro',
                   onTap: () => _elegirTema(context)),
               const SizedBox(height: 24),
               OutlinedButton.icon(
