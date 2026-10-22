@@ -85,7 +85,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _Accion(Icons.description_outlined, 'Mis datos', 'Consulta y edita tu perfil',
           () => MainShell.irAPestana(context, 1)),
       _Accion(Icons.lock_outline, 'Cambiar contraseña', 'Mantén tu cuenta segura',
-          () => MainShell.irAPestana(context, 2)),
+          () => Navigator.pushNamed(context, Rutas.cambiarPassword)),
       _Accion(Icons.settings, 'Configuración', 'Ajusta tus preferencias',
           () => MainShell.irAPestana(context, 3)),
       if (auth.esAdmin)
@@ -94,9 +94,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (auth.esAdmin)
         _Accion(Icons.bar_chart, 'Reportes', 'Resumen y estadísticas',
             () => Navigator.pushNamed(context, Rutas.reportes)),
+      _Accion(Icons.auto_awesome, 'Asistente IA', 'Redacta mensajes de WhatsApp',
+          () => Navigator.pushNamed(context, Rutas.asistente)),
       if (!auth.esAdmin)
-        _Accion(Icons.help_outline, 'Ayuda', 'Preguntas frecuentes',
-            () => Navigator.pushNamed(context, Rutas.ayuda)),
+        _Accion(Icons.sticky_note_2_outlined, 'Notas', 'Tus apuntes rápidos',
+            () => MainShell.irAPestana(context, 2)),
+      _Accion(Icons.help_outline, 'Ayuda', 'Preguntas frecuentes',
+          () => Navigator.pushNamed(context, Rutas.ayuda)),
     ];
 
     return Scaffold(

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 
 import '../models/reporte.dart';
 import '../providers/auth_provider.dart';
+import '../providers/config_provider.dart';
+import '../services/reporte_pdf.dart';
 import '../theme/app_theme.dart';
 import '../widgets/comunes.dart';
 import '../utils/responsive.dart';
@@ -63,58 +65,80 @@ class _ReportesScreenState extends State<ReportesScreen> {
     }
   }
 
-  void _generar() {
+  bool _generando = false;
+
+  /// Genera el PDF del reporte y deja verlo/imprimirlo o compartirlo
+  Future<void> _generar() async {
     final r = _reporte;
-    if (r == null) return;
-    final texto = StringBuffer()
-      ..writeln('REPORTE TRIUNFA BECA')
-      ..writeln('Rango: ${_f(_rango.start)} - ${_f(_rango.end)}')
-      ..writeln('')
-      ..writeln('Total usuarios: ${r.total}')
-      ..writeln('Activos: ${r.activos}')
-      ..writeln('Inactivos: ${r.inactivos}')
-      ..writeln('Administradores: ${r.admins}')
-      ..writeln('Staff: ${r.staff}')
-      ..writeln('')
-      ..writeln('Registros por mes:');
-    for (final m in r.porMes) {
-      texto.writeln('  ${m.etiqueta} ${m.mes.split('-').first}: ${m.total}');
-    }
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text('Reporte generado', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.azulClaro.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(10),
+    if (r == null || _generando) return;
+    final auth = context.read<AuthProvider>();
+    final config = context.read<ConfigProvider>();
+    setState(() => _generando = true);
+    try {
+      final bytes = await crearReportePdf(
+        reporte: r,
+        desde: _rango.start,
+        hasta: _rango.end,
+        sede: config.sede,
+        generadoPor: auth.usuario?.nombre ?? 'Triunfa Beca',
+        logoPath: config.logoPath,
+      );
+      if (!mounted) return;
+      final nombre = 'reporte_triunfa_beca_${_rango.start.year}${_rango.start.month.toString().padLeft(2, '0')}'
+          '_${_rango.end.year}${_rango.end.month.toString().padLeft(2, '0')}.pdf';
+      await showModalBottomSheet<void>(
+        context: context,
+        showDragHandle: true,
+        builder: (ctx) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Row(children: [
+                  Icon(Icons.picture_as_pdf, color: AppColors.rojo, size: 30),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text('Reporte PDF listo',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  ),
+                ]),
+                const SizedBox(height: 4),
+                Text('${_f(_rango.start)} al ${_f(_rango.end)} · ${r.total} usuarios',
+                    style: const TextStyle(color: AppColors.gris)),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    await Printing.layoutPdf(name: nombre, onLayout: (_) async => bytes);
+                  },
+                  icon: const Icon(Icons.print),
+                  label: const Text('Ver / imprimir'),
                 ),
-                child: SelectableText(texto.toString(), style: const TextStyle(fontFamily: 'monospace')),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  await Clipboard.setData(ClipboardData(text: texto.toString()));
-                  if (ctx.mounted) Navigator.pop(ctx);
-                  if (mounted) mostrarMensaje(context, 'Reporte copiado al portapapeles');
-                },
-                icon: const Icon(Icons.copy),
-                label: const Text('Copiar reporte'),
-              ),
-            ],
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    await Printing.sharePdf(bytes: bytes, filename: nombre);
+                  },
+                  icon: const Icon(Icons.share),
+                  label: const Text('Compartir PDF'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(50),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      if (mounted) mostrarMensaje(context, 'No se pudo generar el PDF: $e', error: true);
+    } finally {
+      if (mounted) setState(() => _generando = false);
+    }
   }
 
   @override
@@ -175,9 +199,13 @@ class _ReportesScreenState extends State<ReportesScreen> {
               _GraficoBarras(r.porMes),
               const SizedBox(height: 24),
               ElevatedButton.icon(
-                onPressed: _generar,
-                icon: const Icon(Icons.download),
-                label: const Text('Generar reporte'),
+                onPressed: _generando ? null : _generar,
+                icon: _generando
+                    ? const SizedBox(
+                        width: 18, height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.download),
+                label: Text(_generando ? 'Generando PDF...' : 'Generar reporte'),
               ),
             ],
           ],

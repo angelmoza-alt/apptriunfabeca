@@ -64,6 +64,11 @@ y reinicia VS Code.
 | **ADMIN** | Registrar usuarios (nombre, correo, contraseña, rol), buscarlos y filtrarlos, editar sus datos, cambiar rol, activar/desactivar cuentas, restablecer contraseñas y ver reportes |
 | **staff** | Ver y editar sus datos y cambiar su contraseña |
 
+- **Notas:** apuntes rápidos por usuario (pestaña Notas), guardados en el celular.
+- **Asistente IA:** redacta mensajes de WhatsApp (Beca 18, cierre del 20 de marzo, bienvenida, recordatorios, horarios) listos para copiar.
+- **Reportes en PDF:** A4 con logo, indicadores, tabla y gráfico por mes; se puede imprimir o compartir.
+- **Logo personalizable** desde Configuración (se ve en el menú, el login y el registro) y nombre de la sede.
+- **Ayuda** con buscador en tiempo real.
 - Una cuenta **desactivada** no puede entrar ni a la app ni al panel web.
 - Todas las acciones quedan en la **auditoría** de la API.
 - Tema claro/oscuro y notificaciones se guardan en el celular.

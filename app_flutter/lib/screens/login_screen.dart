@@ -37,7 +37,23 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, Rutas.inicio, (_) => false);
     } catch (e) {
-      if (mounted) mostrarMensaje(context, e.toString(), error: true);
+      if (!mounted) return;
+      // Alerta emergente con el motivo (credenciales, cuenta inactiva o sin conexión)
+      final sinConexion = e.toString().contains('servidor');
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          icon: Icon(sinConexion ? Icons.wifi_off : Icons.lock_outline, color: AppColors.rojo, size: 40),
+          title: Text(sinConexion ? 'Sin conexión' : 'No se pudo iniciar sesión'),
+          content: Text(sinConexion
+              ? e.toString()
+              : 'El correo o la contraseña son incorrectos, o la cuenta está desactivada.\n\n'
+                  'Revisa tus datos o pide ayuda al administrador.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Entendido')),
+          ],
+        ),
+      );
     }
   }
 

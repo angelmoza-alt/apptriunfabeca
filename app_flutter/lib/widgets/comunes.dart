@@ -1,8 +1,12 @@
+import 'dart:io';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../models/usuario.dart';
+import '../providers/config_provider.dart';
 import '../theme/app_theme.dart';
 import '../utils/responsive.dart';
 
@@ -70,18 +74,31 @@ class _OndasPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-/// Logo con fondo transparente
+/// Logo de la academia. Si el usuario eligió uno en Configuración, muestra ese
+/// (guardado en el celular); si no, el logo original de Triunfa Beca.
 class Logo extends StatelessWidget {
   final double ancho;
   final bool soloIcono;
   const Logo({super.key, this.ancho = 220, this.soloIcono = false});
 
   @override
-  Widget build(BuildContext context) => Image.asset(
-        soloIcono ? 'assets/images/logo_icono.png' : 'assets/images/logo.png',
-        width: Responsive.logo(context, ancho),
-        fit: BoxFit.contain,
-      );
+  Widget build(BuildContext context) {
+    final ruta = context.watch<ConfigProvider>().logoPath;
+    final w = Responsive.logo(context, ancho);
+    final porDefecto = Image.asset(
+      soloIcono ? 'assets/images/logo_icono.png' : 'assets/images/logo.png',
+      width: w,
+      fit: BoxFit.contain,
+    );
+    if (ruta == null || kIsWeb) return porDefecto;
+    return Image.file(
+      File(ruta),
+      width: w,
+      height: soloIcono ? w : null,
+      fit: BoxFit.contain,
+      errorBuilder: (_, __, ___) => porDefecto,
+    );
+  }
 }
 
 /// Círculo con iniciales del usuario
@@ -189,6 +206,10 @@ class CampoTexto extends StatelessWidget {
             keyboardType: teclado,
             obscureText: oculto,
             readOnly: !habilitado,
+            // Correos y contraseñas: sin mayúscula automática ni autocorrección
+            textCapitalization: TextCapitalization.none,
+            autocorrect: !(oculto || teclado == TextInputType.emailAddress),
+            enableSuggestions: !(oculto || teclado == TextInputType.emailAddress),
             maxLength: maxLength,
             style: const TextStyle(fontSize: 15),
             decoration: InputDecoration(

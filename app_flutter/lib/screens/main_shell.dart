@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../utils/responsive.dart';
-import 'cambiar_password_screen.dart';
 import 'configuracion_screen.dart';
 import 'dashboard_screen.dart';
 import 'menu_lateral.dart';
 import 'mis_datos_screen.dart';
+import 'notas_screen.dart';
 
-/// Contenedor principal con la barra inferior (Inicio, Datos, Seguridad, Perfil)
+/// Contenedor principal con la barra inferior (Inicio, Datos, Notas, Perfil)
 /// y el menú lateral. Cada pestaña es una pantalla completa.
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -34,7 +34,7 @@ class _MainShellState extends State<MainShell> {
   static const _destinos = [
     (Icons.home_outlined, Icons.home, 'Inicio'),
     (Icons.person_outline, Icons.person, 'Datos'),
-    (Icons.lock_outline, Icons.lock, 'Seguridad'),
+    (Icons.sticky_note_2_outlined, Icons.sticky_note_2, 'Notas'),
     (Icons.account_circle_outlined, Icons.account_circle, 'Perfil'),
   ];
 
@@ -47,7 +47,7 @@ class _MainShellState extends State<MainShell> {
       children: const [
         DashboardScreen(),
         MisDatosScreen(enPestana: true),
-        CambiarPasswordScreen(enPestana: true),
+        NotasScreen(enPestana: true),
         ConfiguracionScreen(enPestana: true),
       ],
     );

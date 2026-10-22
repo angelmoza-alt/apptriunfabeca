@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/config_provider.dart';
 import 'providers/usuarios_provider.dart';
+import 'screens/asistente_ia_screen.dart';
 import 'screens/ayuda_screen.dart';
 import 'screens/cambiar_password_screen.dart';
 import 'screens/configuracion_screen.dart';
@@ -12,6 +13,7 @@ import 'screens/detalle_usuario_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_shell.dart';
 import 'screens/mis_datos_screen.dart';
+import 'screens/notas_screen.dart';
 import 'screens/registro_screen.dart';
 import 'screens/reportes_screen.dart';
 import 'screens/splash_screen.dart';
@@ -51,6 +53,8 @@ class Rutas {
   static const configuracion = '/configuracion';
   static const cambiarPassword = '/cambiar-password';
   static const ayuda = '/ayuda';
+  static const asistente = '/asistente-ia';
+  static const notas = '/notas';
 }
 
 class TriunfaBecaApp extends StatelessWidget {
@@ -87,6 +91,8 @@ class TriunfaBecaApp extends StatelessWidget {
         Rutas.configuracion: (_) => const ConfiguracionScreen(),
         Rutas.cambiarPassword: (_) => const CambiarPasswordScreen(),
         Rutas.ayuda: (_) => const AyudaScreen(),
+        Rutas.asistente: (_) => const AsistenteIAScreen(),
+        Rutas.notas: (_) => const NotasScreen(),
       },
     );
   }

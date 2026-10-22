@@ -61,6 +61,79 @@ class ConfiguracionScreen extends StatelessWidget {
     );
   }
 
+  /// Logo de la academia: elegir de la galería o volver al original
+  Future<void> _opcionesLogo(BuildContext context) async {
+    final config = context.read<ConfigProvider>();
+    final opcion = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Text('Logo de la academia', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ),
+            const Padding(padding: EdgeInsets.all(8), child: Logo(ancho: 160)),
+            const Text('Se mostrará en el menú lateral, el inicio de sesión y el registro.',
+                textAlign: TextAlign.center, style: TextStyle(fontSize: 12.5, color: AppColors.gris)),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.photo_library, color: AppColors.azul),
+              title: const Text('Elegir de la galería'),
+              onTap: () => Navigator.pop(ctx, 'galeria'),
+            ),
+            if (config.tieneLogoPersonalizado)
+              ListTile(
+                leading: const Icon(Icons.restore, color: AppColors.rojo),
+                title: const Text('Restablecer logo original'),
+                onTap: () => Navigator.pop(ctx, 'restablecer'),
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (!context.mounted || opcion == null) return;
+    try {
+      if (opcion == 'galeria') {
+        final cambiado = await config.elegirLogo();
+        if (cambiado && context.mounted) mostrarMensaje(context, 'Logo actualizado');
+      } else {
+        await config.restablecerLogo();
+        if (context.mounted) mostrarMensaje(context, 'Se restableció el logo original');
+      }
+    } catch (e) {
+      if (context.mounted) mostrarMensaje(context, e.toString().replaceFirst('Exception: ', ''), error: true);
+    }
+  }
+
+  /// Nombre de la sede (se guarda en el celular)
+  Future<void> _editarSede(BuildContext context) async {
+    final config = context.read<ConfigProvider>();
+    final ctrl = TextEditingController(text: config.sede);
+    final nuevo = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Nombre de la sede'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(hintText: 'Ej. Sede Trujillo'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(ctx, ctrl.text), child: const Text('Guardar')),
+        ],
+      ),
+    );
+    if (nuevo != null && nuevo.trim().isNotEmpty && context.mounted) {
+      await _guardar(context, () => config.cambiar(sede: nuevo));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final config = context.watch<ConfigProvider>();
@@ -83,9 +156,8 @@ class ConfiguracionScreen extends StatelessWidget {
       ),
       body: Stack(
         children: [
-          const Positioned(bottom: 0, left: 0, right: 0, child: Ondas(alto: 90)),
           ListView(
-            padding: Responsive.padding(context, maxAncho: 640, arriba: 12, abajo: 100),
+            padding: Responsive.padding(context, maxAncho: 640, arriba: 12, abajo: 24),
             children: [
               fila(Icons.person, 'Perfil de usuario', 'Ver tu información completa',
                   onTap: () => Navigator.pushNamed(context, Rutas.detalleUsuario)),
@@ -107,6 +179,12 @@ class ConfiguracionScreen extends StatelessWidget {
               const Divider(),
               fila(Icons.dark_mode, 'Tema', 'Claro / Oscuro',
                   onTap: () => _elegirTema(context)),
+              const Divider(),
+              fila(Icons.image, 'Logo de la academia',
+                  config.tieneLogoPersonalizado ? 'Personalizado' : 'Logo original de Triunfa Beca',
+                  onTap: () => _opcionesLogo(context)),
+              const Divider(),
+              fila(Icons.location_city, 'Sede', config.sede, onTap: () => _editarSede(context)),
               const SizedBox(height: 24),
               OutlinedButton.icon(
                 onPressed: () => confirmarCerrarSesion(context),
