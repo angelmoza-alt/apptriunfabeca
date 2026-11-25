@@ -6,3 +6,6 @@ app_flutter/android/.kotlin/
 
 # Resultado local de las pruebas de la API
 resultado_pruebas.txt
+
+# Scripts personales para iniciar/apagar todo (no se comparten)
+scripts-locales/
