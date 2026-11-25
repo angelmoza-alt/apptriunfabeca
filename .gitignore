@@ -3,3 +3,6 @@ backend/node_modules/
 .env
 
 app_flutter/android/.kotlin/
+
+# Resultado local de las pruebas de la API
+resultado_pruebas.txt

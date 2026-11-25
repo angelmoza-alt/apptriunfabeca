@@ -33,7 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_form.currentState!.validate()) return;
     final auth = context.read<AuthProvider>();
     try {
-      await auth.login(_correo.text.trim(), _password.text);
+      await auth.login(_correo.text.trim().toLowerCase(), _password.text.trim());
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, Rutas.inicio, (_) => false);
     } catch (e) {
